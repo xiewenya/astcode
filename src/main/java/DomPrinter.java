@@ -1,74 +1,88 @@
+import Dom.Dom;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import com.github.javaparser.ast.type.PrimitiveType;
-import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.ast.type.*;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by bresai on 2016/12/20.
  */
-public class DomPrinter {
+public class DomPrinter extends Processor {
     private final String domType;
     private final AstVisitor visitor;
+    private final List<String> blackList =
+            Arrays.asList("Map", "List", "ArrayList", "LinkedList");
+
+    private boolean isBlack(String arg) {
+        return blackList.contains(arg);
+    }
 
     public DomPrinter(String domType, AstVisitor visitor) {
         this.domType = domType;
         this.visitor = visitor;
     }
 
-    public void printClassDeclaration(ClassOrInterfaceDeclaration node, Void arg){
-        visitor.getPrinter().print("<span>");
-        node.getName().accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
-    }
-
-    public void printClassCall(ClassOrInterfaceType node, Void arg ){
-        visitor.getPrinter().print("<span>");
+    private void printDom(Node node, Void arg, Dom dom){
+        visitor.getPrinter().print(dom.getDomStart());
         node.accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
+        visitor.getPrinter().print(dom.getDomEnd());
     }
 
-    public void printVariableType(Type node, Void arg){
-        if (! (node instanceof PrimitiveType)){
-            visitor.getPrinter().print("<span>");
-            node.accept(visitor, arg);
-            visitor.getPrinter().print("</span>");
-        } else{
-            node.accept(visitor, arg);
+    @Override
+    public void printClassDeclaration(ClassOrInterfaceDeclaration node, Void arg) {
+        Dom dom = new Dom(domType);
+        dom.setType("class_declare");
+        printDom(node.getName(), arg, dom);
+    }
+
+    @Override
+    public void printMethodDeclaration(MethodDeclaration node, Void arg) {
+        Dom dom = new Dom(domType);
+        dom.setType("method_declare");
+        printDom(node.getName(), arg, dom);
+    }
+
+    @Override
+    public void printMethodCall(Node node, Void arg) {
+        Dom dom = new Dom(domType);
+        dom.setType("method_call");
+        printDom(node, arg, dom);
+    }
+
+    @Override
+    public void printAnnotation(AnnotationExpr node, Void arg) {
+        Dom dom = new Dom(domType);
+        dom.setType("use_annotation");
+        printDom(node, arg, dom);
+    }
+
+    @Override
+    public void printClassType(ClassOrInterfaceType node, Void arg) {
+        if (isBlack(node.getName().getIdentifier())){
+            node.getName().accept(visitor, arg);
+            return;
         }
+        Dom dom = new Dom(domType);
+        dom.setType("class");
+        printDom(node.getName(), arg, dom);
     }
 
-    public void printMethodDeclaration(MethodDeclaration node, Void arg){
-        visitor.getPrinter().print("<span>");
-        node.getName().accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
+    @Override
+    public void printNewObjectCreation(ClassOrInterfaceType node, Void arg) {
+        Dom dom = new Dom(domType);
+        dom.setType("new");
+        printDom(node.getName(), arg, dom);
     }
 
-    public void printMethodCall(Node node, Void arg){
-        visitor.getPrinter().print("<span>");
-        node.accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
+    @Override
+    public void printConstructor(ConstructorDeclaration node, Void arg){
+        Dom dom = new Dom(domType);
+        dom.setType("constructor");
+        printDom(node.getName(), arg, dom);
     }
-
-    public void printParameter(Parameter node, Void arg){
-        visitor.getPrinter().print("<span>");
-        node.accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
-    }
-
-    public void printNewObjectCreation(ClassOrInterfaceType node, Void arg){
-        visitor.getPrinter().print("<span>");
-        node.accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
-    }
-
-    public void printAnnotation(AnnotationExpr node, Void arg){
-        visitor.getPrinter().print("<span>");
-        node.accept(visitor, arg);
-        visitor.getPrinter().print("</span>");
-    }
-
 }

@@ -1,5 +1,9 @@
 package source;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Created by bresai on 2016/12/16.
  */
@@ -8,7 +12,7 @@ public class Test1 extends Object implements TestInter{
     private int a;
     private Integer b;
     private final static String c = "hello";
-
+    private Map<ArrayList<TestInter>, List<TestInter>> map;
     /**
      * 2312312
      * @param a

@@ -1,3 +1,4 @@
+import Dom.Keyword;
 import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.comments.BlockComment;
@@ -17,7 +18,6 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.stream.Collectors;
 
 /**
  * Created by bresai on 2016/12/19.
@@ -44,9 +44,10 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     private void printModifiers(EnumSet<Modifier> modifiers) {
         if(modifiers.size() > 0) {
-            this.printer.print((String)modifiers.stream().map(Modifier::asString).collect(Collectors.joining(" ")) + " ");
+            for (Enum modifier : modifiers){
+                this.printer.print(new Keyword(((Modifier) modifier).asString()).asString() + " ");
+            }
         }
-
     }
 
     private void printMembers(NodeList<BodyDeclaration<?>> members, Void arg) {
@@ -179,7 +180,7 @@ public class AstVisitor extends PrettyPrintVisitor {
     public void visit(PackageDeclaration n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
         this.printAnnotations(n.getAnnotations(), false, arg);
-        this.printer.print("package ");
+        this.printer.print(new Keyword("package").asString() + " ");
         n.getName().accept(this, arg);
         this.printer.println(";");
         this.printer.println();
@@ -212,9 +213,9 @@ public class AstVisitor extends PrettyPrintVisitor {
         this.printMemberAnnotations(n.getAnnotations(), arg);
         this.printModifiers(n.getModifiers());
         if(n.isInterface()) {
-            this.printer.print("interface ");
+            this.printer.print(new Keyword("interface").asString() + " ");
         } else {
-            this.printer.print("class ");
+            this.printer.print(new Keyword("class").asString() + " ");
         }
 
         this.domPrinter.printClassDeclaration(n, arg);
@@ -222,12 +223,12 @@ public class AstVisitor extends PrettyPrintVisitor {
         Iterator i;
         ClassOrInterfaceType c;
         if(!n.getExtends().isEmpty()) {
-            this.printer.print(" extends ");
+            this.printer.print(" " + new Keyword("extends").asString() + " ");
             i = n.getExtends().iterator();
 
             while(i.hasNext()) {
                 c = (ClassOrInterfaceType)i.next();
-                this.domPrinter.printClassCall(c, arg);
+                c.accept(this, arg);
                 if(i.hasNext()) {
                     this.printer.print(", ");
                 }
@@ -235,12 +236,12 @@ public class AstVisitor extends PrettyPrintVisitor {
         }
 
         if(!n.getImplements().isEmpty()) {
-            this.printer.print(" implements ");
+            this.printer.print(" " + new Keyword("implements").asString() + " ");
             i = n.getImplements().iterator();
 
             while(i.hasNext()) {
                 c = (ClassOrInterfaceType)i.next();
-                this.domPrinter.printClassCall(c, arg);
+                c.accept(this, arg);
                 if(i.hasNext()) {
                     this.printer.print(", ");
                 }
@@ -279,7 +280,8 @@ public class AstVisitor extends PrettyPrintVisitor {
             this.printer.print(" ");
         }
 
-        n.getName().accept(this, arg);
+
+        this.domPrinter.printClassType(n, arg);
         if(n.isUsingDiamondOperator()) {
             this.printer.print("<>");
         } else {
@@ -300,7 +302,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
         n.getName().accept(this, arg);
         if(!Utils.isNullOrEmpty(n.getTypeBound())) {
-            this.printer.print(" extends ");
+            this.printer.print(" " + new Keyword("extends").asString()+ " ");
             i = n.getTypeBound().iterator();
 
             while(i.hasNext()) {
@@ -329,6 +331,7 @@ public class AstVisitor extends PrettyPrintVisitor {
             arrayType = (ArrayType)type;
             arrayTypeBuffer.add(arrayType);
         }
+
 
         ((Type)type).accept(this, arg);
         Iterator arrayType2 = arrayTypeBuffer.iterator();
@@ -391,12 +394,12 @@ public class AstVisitor extends PrettyPrintVisitor {
         this.printAnnotations(n.getAnnotations(), false, arg);
         this.printer.print("?");
         if(n.getExtendedTypes().isPresent()) {
-            this.printer.print(" extends ");
+            this.printer.print(" " + new Keyword("extends").asString() + " ");
             ((ReferenceType)n.getExtendedTypes().get()).accept(this, arg);
         }
 
         if(n.getSuperTypes().isPresent()) {
-            this.printer.print(" super ");
+            this.printer.print(" " + new Keyword("super").asString() + " ");
             ((ReferenceType)n.getSuperTypes().get()).accept(this, arg);
         }
 
@@ -411,9 +414,7 @@ public class AstVisitor extends PrettyPrintVisitor {
         this.printMemberAnnotations(n.getAnnotations(), arg);
         this.printModifiers(n.getModifiers());
         if(!n.getVariables().isEmpty()) {
-            this.domPrinter.printVariableType(
-                    ((VariableDeclarator)n.getVariables().get(0)).
-                            getType().getElementType(), arg);
+            ((VariableDeclarator)n.getVariables().get(0)).getType().getElementType().accept(this, arg);
         }
 
         this.printer.print(" ");
@@ -480,7 +481,7 @@ public class AstVisitor extends PrettyPrintVisitor {
     public void visit(VoidType n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
         this.printAnnotations(n.getAnnotations(), false, arg);
-        this.printer.print("void");
+        this.printer.print(" " + new Keyword("void").asString() + " ");
     }
 
     public void visit(ArrayAccessExpr n, Void arg) {
@@ -493,7 +494,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(ArrayCreationExpr n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("new ");
+        this.printer.print(new Keyword("new").asString() + " ");
         n.getElementType().accept(this, arg);
         Iterator var3 = n.getLevels().iterator();
 
@@ -573,7 +574,7 @@ public class AstVisitor extends PrettyPrintVisitor {
     public void visit(InstanceOfExpr n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
         n.getExpression().accept(this, arg);
-        this.printer.print(" instanceof ");
+        this.printer.print(" " + new Keyword("instanceof").asString() + " ");
         n.getType().accept(this, arg);
     }
 
@@ -613,7 +614,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(NullLiteralExpr n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("null");
+        this.printer.print(new Keyword("null").asString());
     }
 
     public void visit(ThisExpr n, Void arg) {
@@ -623,7 +624,7 @@ public class AstVisitor extends PrettyPrintVisitor {
             this.printer.print(".");
         }
 
-        this.printer.print("this");
+        this.printer.print(new Keyword("this").asString());
     }
 
     public void visit(SuperExpr n, Void arg) {
@@ -633,7 +634,7 @@ public class AstVisitor extends PrettyPrintVisitor {
             this.printer.print(".");
         }
 
-        this.printer.print("super");
+        this.printer.print(new Keyword("super").asString());
     }
 
     public void visit(MethodCallExpr n, Void arg) {
@@ -655,7 +656,7 @@ public class AstVisitor extends PrettyPrintVisitor {
             this.printer.print(".");
         }
 
-        this.printer.print("new ");
+        this.printer.print(new Keyword("new").asString() + " ");
         this.printTypeArgs(n, arg);
         if(!Utils.isNullOrEmpty((Collection)n.getTypeArguments().orElse(null))) {
             this.printer.print(" ");
@@ -695,7 +696,8 @@ public class AstVisitor extends PrettyPrintVisitor {
             this.printer.print(" ");
         }
 
-        n.getName().accept(this, arg);
+        this.domPrinter.printConstructor(n, arg);
+
         this.printer.print("(");
         Iterator i;
         if(!n.getParameters().isEmpty()) {
@@ -703,7 +705,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
             while(i.hasNext()) {
                 Parameter name = (Parameter)i.next();
-                this.domPrinter.printParameter(name, arg);
+                name.accept(this, arg);
                 if(i.hasNext()) {
                     this.printer.print(", ");
                 }
@@ -712,7 +714,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
         this.printer.print(")");
         if(!Utils.isNullOrEmpty(n.getThrownExceptions())) {
-            this.printer.print(" throws ");
+            this.printer.print(" " + new Keyword("throws").asString() + " ");
             i = n.getThrownExceptions().iterator();
 
             while(i.hasNext()) {
@@ -734,14 +736,13 @@ public class AstVisitor extends PrettyPrintVisitor {
         this.printMemberAnnotations(n.getAnnotations(), arg);
         this.printModifiers(n.getModifiers());
         if(n.isDefault()) {
-            this.printer.print("default ");
+            this.printer.print(new Keyword("default").asString() + " ");
         }
 
         this.printTypeParameters(n.getTypeParameters(), arg);
         if(!Utils.isNullOrEmpty(n.getTypeParameters())) {
             this.printer.print(" ");
         }
-
 
         n.getType().accept(this, arg);
         this.printer.print(" ");
@@ -763,7 +764,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
         this.printer.print(")");
         if(!Utils.isNullOrEmpty(n.getThrownExceptions())) {
-            this.printer.print(" throws ");
+            this.printer.print(" " + new Keyword("throws").asString() + " ");
             i = n.getThrownExceptions().iterator();
 
             while(i.hasNext()) {
@@ -804,7 +805,7 @@ public class AstVisitor extends PrettyPrintVisitor {
         this.printJavaComment(n.getComment(), arg);
         if(n.isThis()) {
             this.printTypeArgs(n, arg);
-            this.printer.print("this");
+            this.printer.print(new Keyword("this").asString());
         } else {
             if(n.getExpression().isPresent()) {
                 ((Expression)n.getExpression().get()).accept(this, arg);
@@ -812,7 +813,7 @@ public class AstVisitor extends PrettyPrintVisitor {
             }
 
             this.printTypeArgs(n, arg);
-            this.printer.print("super");
+            this.printer.print(new Keyword("super").asString());
         }
 
         this.printArguments(n.getArguments(), arg);
@@ -847,7 +848,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(AssertStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("assert ");
+        this.printer.print(new Keyword("assert").asString() + " ");
         n.getCheck().accept(this, arg);
         if(n.getMessage().isPresent()) {
             this.printer.print(" : ");
@@ -899,7 +900,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(SwitchStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("switch(");
+        this.printer.print(new Keyword("switch").asString() + "(");
         n.getSelector().accept(this, arg);
         this.printer.println(") {");
         if(n.getEntries() != null) {
@@ -920,11 +921,11 @@ public class AstVisitor extends PrettyPrintVisitor {
     public void visit(SwitchEntryStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
         if(n.getLabel().isPresent()) {
-            this.printer.print("case ");
+            this.printer.print(new Keyword("case").asString() + " ");
             ((Expression)n.getLabel().get()).accept(this, arg);
             this.printer.print(":");
         } else {
-            this.printer.print("default:");
+            this.printer.print(new Keyword("default").asString() + ":");
         }
 
         this.printer.println();
@@ -944,7 +945,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(BreakStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("break");
+        this.printer.print(new Keyword("break").asString());
         if(n.getIdentifier().isPresent()) {
             this.printer.print(" ");
             this.printer.print((String)n.getIdentifier().get());
@@ -955,7 +956,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(ReturnStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("return");
+        this.printer.print(new Keyword("return").asString());
         if(n.getExpression().isPresent()) {
             this.printer.print(" ");
             ((Expression)n.getExpression().get()).accept(this, arg);
@@ -968,11 +969,11 @@ public class AstVisitor extends PrettyPrintVisitor {
         this.printJavaComment(n.getComment(), arg);
         this.printMemberAnnotations(n.getAnnotations(), arg);
         this.printModifiers(n.getModifiers());
-        this.printer.print("enum ");
+        this.printer.print(new Keyword("enum").asString() + " ");
         n.getName().accept(this, arg);
         Iterator i;
         if(!n.getImplements().isEmpty()) {
-            this.printer.print(" implements ");
+            this.printer.print(" " + new Keyword("implements").asString() + " ");
             i = n.getImplements().iterator();
 
             while(i.hasNext()) {
@@ -1036,7 +1037,7 @@ public class AstVisitor extends PrettyPrintVisitor {
     public void visit(InitializerDeclaration n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
         if(n.isStatic()) {
-            this.printer.print("static ");
+            this.printer.print(new Keyword("static").asString() + " ");
         }
 
         n.getBlock().accept(this, arg);
@@ -1044,7 +1045,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(IfStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("if (");
+        this.printer.print(new Keyword("if").asString() + " (");
         n.getCondition().accept(this, arg);
         boolean thenBlock = n.getThenStmt() instanceof BlockStmt;
         if(thenBlock) {
@@ -1069,10 +1070,10 @@ public class AstVisitor extends PrettyPrintVisitor {
             boolean elseIf = n.getElseStmt().orElse(null) instanceof IfStmt;
             boolean elseBlock = n.getElseStmt().orElse(null) instanceof BlockStmt;
             if(!elseIf && !elseBlock) {
-                this.printer.println("else");
+                this.printer.println(new Keyword("else").asString());
                 this.printer.indent();
             } else {
-                this.printer.print("else ");
+                this.printer.print(new Keyword("else").asString() + " ");
             }
 
             if(n.getElseStmt().isPresent()) {
@@ -1088,7 +1089,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(WhileStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("while (");
+        this.printer.print(new Keyword("while").asString() + " (");
         n.getCondition().accept(this, arg);
         this.printer.print(") ");
         n.getBody().accept(this, arg);
@@ -1096,7 +1097,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(ContinueStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("continue");
+        this.printer.print(new Keyword("continue").asString() + "");
         if(n.getIdentifier().isPresent()) {
             this.printer.print(" ");
             this.printer.print((String)n.getIdentifier().get());
@@ -1107,16 +1108,16 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(DoStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("do ");
+        this.printer.print(new Keyword("do").asString() + " ");
         n.getBody().accept(this, arg);
-        this.printer.print(" while (");
+        this.printer.print(" " + new Keyword("while").asString() + " (");
         n.getCondition().accept(this, arg);
         this.printer.print(");");
     }
 
     public void visit(ForeachStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("for (");
+        this.printer.print(new Keyword("for").asString() + " (");
         n.getVariable().accept(this, arg);
         this.printer.print(" : ");
         n.getIterable().accept(this, arg);
@@ -1126,7 +1127,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(ForStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("for (");
+        this.printer.print(new Keyword("for").asString() + " (");
         Iterator i;
         Expression e;
         if(n.getInitialization() != null) {
@@ -1165,14 +1166,14 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(ThrowStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("throw ");
+        this.printer.print(new Keyword("throw").asString() + " ");
         n.getExpression().accept(this, arg);
         this.printer.print(";");
     }
 
     public void visit(SynchronizedStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("synchronized (");
+        this.printer.print(new Keyword("synchronized").asString() + " (");
         n.getExpression().accept(this, arg);
         this.printer.print(") ");
         n.getBody().accept(this, arg);
@@ -1180,7 +1181,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(TryStmt n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("try ");
+        this.printer.print(new Keyword("try").asString() + " ");
         Iterator resources;
         if(!n.getResources().isEmpty()) {
             this.printer.print("(");
@@ -1216,7 +1217,7 @@ public class AstVisitor extends PrettyPrintVisitor {
         }
 
         if(n.getFinallyBlock().isPresent()) {
-            this.printer.print(" finally ");
+            this.printer.print(" " + new Keyword("finally").asString() + " ");
             ((BlockStmt)n.getFinallyBlock().get()).accept(this, arg);
         }
 
@@ -1224,7 +1225,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(CatchClause n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print(" catch (");
+        this.printer.print(" " + new Keyword("catch").asString() + " (");
         n.getParameter().accept(this, arg);
         this.printer.print(") ");
         n.getBody().accept(this, arg);
@@ -1255,7 +1256,7 @@ public class AstVisitor extends PrettyPrintVisitor {
         n.getName().accept(this, arg);
         this.printer.print("()");
         if(n.getDefaultValue().isPresent()) {
-            this.printer.print(" default ");
+            this.printer.print(" " + new Keyword("default").asString() + " ");
             ((Expression)n.getDefaultValue().get()).accept(this, arg);
         }
 
@@ -1392,7 +1393,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(SingleStaticImportDeclaration n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("import static ");
+        this.printer.print(new Keyword("import").asString() + " " + new Keyword("static").asString() + " ");
         n.getType().accept(this, arg);
         this.printer.print(".");
         this.printer.print(n.getStaticMember());
@@ -1402,7 +1403,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(SingleTypeImportDeclaration n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("import ");
+        this.printer.print(new Keyword("import").asString() + " ");
         n.getType().accept(this, arg);
         this.printer.println(";");
         this.printOrphanCommentsEnding(n);
@@ -1410,7 +1411,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(StaticImportOnDemandDeclaration n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("import static ");
+        this.printer.print(new Keyword("import").asString() + " " + new Keyword("static").asString() + " ");
         n.getType().accept(this, arg);
         this.printer.println(".*;");
         this.printOrphanCommentsEnding(n);
@@ -1418,7 +1419,7 @@ public class AstVisitor extends PrettyPrintVisitor {
 
     public void visit(TypeImportOnDemandDeclaration n, Void arg) {
         this.printJavaComment(n.getComment(), arg);
-        this.printer.print("import ");
+        this.printer.print(new Keyword("import").asString() + " ");
         n.getName().accept(this, arg);
         this.printer.println(".*;");
         this.printOrphanCommentsEnding(n);
